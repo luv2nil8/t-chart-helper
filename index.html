@@ -354,8 +354,10 @@
     })();
 
     // Mobile
-    const selTxt  = state.select>0 ? `𝗦𝗲𝗹𝗲𝗰𝘁 $30/mo × ${state.select}` : '';
-    const plusTxt = state.plus>0  ? `𝗣𝗹𝘂𝘀 $45/mo × ${state.plus}` : '';
+    const selTotal  = state.select * 30;
+    const plusTotal = state.plus * 45;
+    const selTxt  = state.select>0 ? `𝗦𝗲𝗹𝗲𝗰𝘁 × ${state.select}: $${selTotal}/mo` : '';
+    const plusTxt = state.plus>0   ? `𝗣𝗹𝘂𝘀 × ${state.plus}: $${plusTotal}/mo` : '';
     const mobLine = [selTxt, plusTxt].filter(Boolean).join(' · ');
     if (mobLine) result.push({text:`𝗠𝗼𝗯𝗶𝗹𝗲: ${mobLine}`, detail:false});
     if (state.watch>0 || state.tablet>0) {
