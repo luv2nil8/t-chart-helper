@@ -15,13 +15,13 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);height:100vh;display:grid;grid-template-columns:1fr 380px;grid-template-rows:auto 1fr;overflow:hidden}
-  @media(max-width:700px){
-    body{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;height:auto;overflow:auto}
+  @media(max-width:820px){
+    body{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:100vh;overflow:hidden}
     header .hint{display:none}
-    .panel-left{border-right:none;border-bottom:1px solid var(--border);overflow-y:visible;height:auto}
-    .panel-right{border-top:1px solid var(--border);overflow:visible;max-height:60vh}
-    .preview{overflow-y:auto}
-    .actions{position:sticky;bottom:0;background:var(--surface);z-index:10;border-top:1px solid var(--border)}
+    .panel-left{border-right:none;border-bottom:1px solid var(--border);overflow-y:auto;height:50vh}
+    .panel-right{border-top:1px solid var(--border);height:50vh;overflow:hidden;display:flex;flex-direction:column}
+    .preview{flex:1;min-height:0;overflow-y:auto}
+    .actions{flex-shrink:0;position:relative;bottom:auto}
   }
   header{grid-column:1/-1;padding:13px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;background:var(--surface)}
   .logo{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);background:var(--accent-dim);padding:3px 9px;border-radius:4px;border:1px solid rgba(79,127,255,0.3)}
@@ -89,6 +89,10 @@
   .btn-copy:hover{opacity:.88} .btn-copy:active{transform:scale(0.97)} .btn-copy.success{background:#1f7a49}
   .btn-clear{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 11px;font-family:var(--sans);font-size:11px;color:var(--muted);cursor:pointer;transition:color .1s,border-color .1s}
   .btn-clear:hover{color:var(--red);border-color:rgba(255,95,109,0.4)}
+  .btn-copy-small{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--muted);cursor:pointer;display:flex;align-items:center;transition:color .1s,border-color .1s}
+  .btn-copy-small:hover{color:var(--green);border-color:var(--green-border)}
+  .btn-copy-small.success{color:var(--green);border-color:var(--green-border)}
+  .total-label{font-size:10px;color:var(--muted);font-family:var(--mono)}
   .item.disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
   ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--faint);border-radius:2px}
 </style>
@@ -110,7 +114,7 @@
       <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: NOW Prepaid $30/mo · 100 Mbps">NOW Prepaid <span class="price">$30</span></button>
       <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 300 Mbps $45/mo">300 Mbps <span class="price">$45</span></button>
       <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 500 Mbps $55/mo">500 Mbps <span class="price">$55</span></button>
-      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Gigabit $60/mo · Disney+/Hulu/Peacock incl.">Gigabit <span class="price">$60 ⭐</span></button>
+      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Gigabit $60/mo">Gigabit <span class="price">$60 ⭐</span></button>
       <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 2 Gbps $100/mo">2 Gbps <span class="price">$100</span></button>
           </div>
     <div class="detail-row"><button class="btn-detail" data-detail-key="internet"
@@ -148,8 +152,8 @@
   <div class="section">
     <div class="section-label">𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫</div>
     <div class="btn-grid">
-      <button class="item" data-text="𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 $18/mo · Netflix · Apple TV+ · Peacock">Basic <span class="price">$18</span></button>
-      <button class="item" data-text="𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 Premium $35/mo · Netflix · Apple TV+ · Peacock · Disney+/Hulu · Max">Premium <span class="price">$35</span></button>
+      <button class="item" data-key="stream" data-text="𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 $18/mo · Netflix · Apple TV+ · Peacock">Basic <span class="price">$18</span></button>
+      <button class="item" data-key="stream" data-text="𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 Premium $35/mo · Netflix · Apple TV+ · Peacock · Disney+/Hulu · Max">Premium <span class="price">$35</span></button>
       <button class="item" id="btn-streamsaver-addon" data-addon-for="nowtv" data-text-base="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $20/mo · 125+ ch · 20hr DVR" data-text-upgraded="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $30/mo · 125+ ch · 20hr DVR · Netflix · Apple TV+ · Peacock">NOW add-on <span class="price">+$10</span></button>
     </div>
     <div class="detail-row"><button class="btn-detail" data-detail-key="stream"
@@ -252,8 +256,14 @@
     <div class="discount-area-lines" id="discountLines"></div>
   </div>
   <div class="total-bar">
-    <span></span>
-    <strong id="totalCount">0</strong>
+    <span class="total-label">Monthly Total</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <strong id="totalCount">0</strong>
+      <strong id="runningTotal" style="color:var(--green);font-family:var(--mono);font-size:12px">$0/mo</strong>
+      <button class="btn-copy-small" id="copyTotalBtn" title="Copy total line">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+    </div>
   </div>
   <div class="actions">
     <button class="btn-copy" id="copyBtn">
@@ -266,6 +276,7 @@
 
 <script>
   const state = { lines:[], select:0, plus:0, watch:0, tablet:0, indoor:0, outdoor:0, details:{}, addonActive:false };
+  let monthlyTotal = 0;
   const activeKeys = new Set();
 
   // NOW TV base and upgraded text (mirrors data attributes on the addon button)
@@ -277,15 +288,24 @@
   }
 
   function getBundleDiscounts() {
+    // Returns [{label, amount}] — amount is positive number representing savings
     if (!activeKeys.has('internet')) return [];
     const out = [];
-    // nowtv counts as a TV service for bundle purposes
-    const bundled = ['tv','nowtv','voice','security'].filter(k=>activeKeys.has(k)).length;
-    if (bundled===1) out.push('💰 Bundle discount: −$20/mo (double play)');
-    if (bundled===2) out.push('💰 Bundle discount: −$40/mo (triple play)');
-    if (bundled>=3) out.push('💰 Bundle discount: −$60/mo (quad play)');
-    const mob = state.select + state.plus;
-    if (mob>0) out.push(`💰 Save $10/mo on internet when bundled with Xfinity Mobile`);
+    const hasMobile = (state.select + state.plus) > 0;
+    const hasTV      = activeKeys.has('tv') || activeKeys.has('nowtv');
+    const hasVoice   = activeKeys.has('voice');
+    const hasSec     = activeKeys.has('security');
+
+    // Service bundle (TV/Voice/Security combos off internet)
+    const bundled = [hasTV, hasVoice, hasSec].filter(Boolean).length;
+    if (bundled === 1) out.push({label:'💰 Double play discount (Internet + 1 service)', amount:20});
+    if (bundled === 2) out.push({label:'💰 Triple play discount (Internet + 2 services)', amount:40});
+    if (bundled >= 3) out.push({label:'💰 Quad play discount (Internet + 3 services)', amount:60});
+
+    // Mobile bundle — flat $10 off internet if any mobile lines exist
+    if (hasMobile) {
+      out.push({label:'💰 Mobile bundle discount', amount: 10});
+    }
     return out;
   }
 
@@ -373,7 +393,7 @@
       if (dt) result.push({text: dt, detail: true});
     }
 
-    getBundleDiscounts().forEach(d => result.push({text:d, detail:false}));
+    getBundleDiscounts().forEach(d => result.push({text:d.label, detail:false}));
     return result;
   }
 
@@ -401,8 +421,64 @@
     document.getElementById('countBadge').textContent = itemCount+(itemCount===1?' item':' items');
     document.getElementById('totalCount').textContent = itemCount;
 
+    // Running total — explicit pricing per service, no regex guessing
+    const internetPrices = {
+      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: NOW Prepaid $30/mo · 100 Mbps': 30,
+      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 300 Mbps $45/mo': 45,
+      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 500 Mbps $55/mo': 55,
+      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Gigabit $60/mo': 50,
+      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 2 Gbps $100/mo': 100,
+      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Essentials $14.95/mo · 75 Mbps': 14.95,
+      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Essentials+ $29.95/mo · 300 Mbps': 29.95,
+    };
+    const tvPrices = {
+      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Core $55/mo · 10+ ch': 55,
+      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $20/mo · 125+ ch · 20hr DVR': 20,
+      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $30/mo · 125+ ch · 20hr DVR · Netflix · Apple TV+ · Peacock': 30,
+      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV Latino $15/mo · Spanish-language + local ch': 15,
+      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Sports & News $90/mo · 50+ ch': 90,
+      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Kids & Entertainment $105/mo · 125+ ch': 105,
+      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Premium $135/mo · 185+ ch': 135,
+    };
+    const streamPrices = {
+      '𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 $18/mo · Netflix · Apple TV+ · Peacock': 18,
+      '𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 Premium $35/mo · Netflix · Apple TV+ · Peacock · Disney+/Hulu · Max': 35,
+    };
+    const miscPrices = {
+      '𝐇𝐨𝐦𝐞 𝐏𝐡𝐨𝐧𝐞: Voice Premier $30–$40/mo': 35, // mid-point estimate
+    };
+    const allPriceMaps = [internetPrices, tvPrices, streamPrices, miscPrices];
+    let gross = 0;
+    state.lines.forEach(l => {
+      for (const map of allPriceMaps) {
+        if (map[l.text] !== undefined) { gross += map[l.text]; break; }
+      }
+    });
+    // Security: Smart Home + Pro Monitoring combined = $55, or individual
+    const hasSmartHome = state.lines.some(l => l.text === '𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Smart Home $10/mo');
+    const hasPro       = state.lines.some(l => l.text === '𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Pro Monitoring $45/mo');
+    if (hasSmartHome && hasPro) gross += 55;
+    else if (hasSmartHome)      gross += 10;
+    else if (hasPro)            gross += 45;
+    // Mobile
+    gross += (state.select * 30) + (state.plus * 45);
+    gross += Math.min(state.watch * 10 + state.tablet * 20, 35);
+    gross += (state.indoor * 2.50) + (state.outdoor * 5);
+    // Discounts
+    const totalDiscount = disc.reduce((sum, d) => sum + d.amount, 0);
+    monthlyTotal = Math.max(0, gross - totalDiscount);
+    const rtEl = document.getElementById('runningTotal');
+    if (rtEl) {
+      if (monthlyTotal > 0) {
+        const discStr = totalDiscount > 0 ? ` (−$${totalDiscount} disc.)` : '';
+        rtEl.textContent = `$${Math.round(monthlyTotal)}/mo${discStr}`;
+      } else {
+        rtEl.textContent = '$0/mo';
+      }
+    }
+
     const da = document.getElementById('discountArea');
-    if (disc.length){ da.style.display='block'; document.getElementById('discountLines').textContent=disc.join('\n'); }
+    if (disc.length){ da.style.display='block'; document.getElementById('discountLines').textContent=disc.map(d=>d.label).join('\n'); }
     else da.style.display='none';
 
     if (!allLines.length){
@@ -466,8 +542,8 @@
         }
       } else {
         // Clear mutually exclusive keys
-        if (key === 'internet') {
-          ['internet'].forEach(ck => {
+        if (key === 'internet' || key === 'stream') {
+          [key].forEach(ck => {
             document.querySelectorAll(`button.item[data-key="${ck}"].active`).forEach(s=>{
               const si = state.lines.findIndex(l=>l.text===s.getAttribute('data-text'));
               if (si>-1) state.lines.splice(si,1);
@@ -641,9 +717,26 @@
     });
   });
 
+  // Copy total line
+  document.getElementById('copyTotalBtn').addEventListener('click', () => {
+    const rtEl = document.getElementById('runningTotal');
+    const total = rtEl ? rtEl.textContent : '$0/mo';
+    const text = `${Math.round(monthlyTotal)}`; // uses hoisted monthlyTotal
+    const btn = document.getElementById('copyTotalBtn');
+    const done = () => {
+      btn.classList.add('success');
+      setTimeout(() => btn.classList.remove('success'), 1500);
+    };
+    navigator.clipboard.writeText(text).then(done).catch(() => {
+      const ta = Object.assign(document.createElement('textarea'), {value: text});
+      ta.style.cssText = 'position:absolute;left:-9999px';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+    });
+  });
+
   // Clear
   document.getElementById('clearBtn').addEventListener('click',()=>{
-    state.lines=[]; state.select=0; state.plus=0; state.watch=0; state.tablet=0; state.details={}; state.addonActive=false;
+    state.lines=[]; state.select=0; state.plus=0; state.watch=0; state.tablet=0; state.indoor=0; state.outdoor=0; state.details={}; state.addonActive=false;
     activeKeys.clear();
     document.querySelectorAll('button.item.active').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.btn-detail.active').forEach(b=>{ b.classList.remove('active'); b.textContent='+ details'; });
