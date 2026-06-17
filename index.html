@@ -41,11 +41,11 @@
   /* Item buttons */
   .btn-grid{display:flex;flex-wrap:wrap;gap:5px}
   .item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:12px;font-family:var(--sans);color:var(--text);cursor:pointer;transition:background .12s,border-color .12s,color .12s,transform .08s;line-height:1.4;text-align:left}
-  .item:hover{background:var(--surface2);border-color:rgba(255,255,255,0.18)}
+  .item:hover{background:var(--surface2);border-color:rgba(2,2,2,0.18)}
   .item:active{transform:scale(0.96)}
   .item.active{background:var(--accent-dim);border-color:var(--accent);color:#a8c0ff}
   .item .price{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:3px}
-  .item.active .price{color:rgba(168,192,255,0.7)}
+  .item.active .price{color:rgba(168,192,2,0.7)}
 
   /* Mobile steppers */
   .mobile-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
@@ -55,12 +55,12 @@
   .mobile-label{flex:1;padding:5px 10px;font-size:12px;color:var(--text);user-select:none;transition:background .12s,color .12s;display:flex;align-items:center}
   .mobile-row.active .mobile-label{color:#a8c0ff;background:var(--accent-dim)}
   .mobile-label .price{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:4px}
-  .mobile-row.active .mobile-label .price{color:rgba(168,192,255,0.7)}
+  .mobile-row.active .mobile-label .price{color:rgba(168,192,2,0.7)}
   .stepper{display:flex;align-items:center;border-left:1px solid var(--border);flex-shrink:0}
-  .mobile-row.active .stepper{border-color:rgba(79,127,255,0.3)}
+  .mobile-row.active .stepper{border-color:rgba(79,127,2,0.3)}
   .step-btn{background:none;border:none;color:var(--muted);width:26px;height:100%;min-height:28px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .1s,background .1s;font-family:var(--mono);line-height:1}
   .step-btn:hover{color:var(--text);background:var(--surface2)}
-  .mobile-row.active .step-btn:hover{background:rgba(79,127,255,0.2);color:#a8c0ff}
+  .mobile-row.active .step-btn:hover{background:rgba(79,127,2,0.2);color:#a8c0ff}
   .step-btn:disabled{opacity:.2;cursor:default}
   .step-btn:disabled:hover{background:none;color:var(--muted)}
   .step-count{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);min-width:20px;text-align:center}
@@ -69,7 +69,7 @@
   /* Right panel */
   .panel-right-header{padding:10px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
   .panel-right-header span{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-  .count-badge{font-size:10px;font-family:var(--mono);background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:20px;border:1px solid rgba(79,127,255,0.25)}
+  .count-badge{font-size:10px;font-family:var(--mono);background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:20px;border:1px solid rgba(79,127,2,0.25)}
   .preview{flex:1;min-height:0;padding:9px 12px;font-family:var(--mono);font-size:11.5px;line-height:1.8;color:var(--text);overflow-y:auto}
   .preview .empty{color:var(--faint);font-style:italic}
   .preview .line{padding:1px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:5px}
@@ -88,7 +88,7 @@
   .btn-copy{flex:1;background:var(--accent);border:none;border-radius:6px;padding:8px 14px;font-family:var(--sans);font-size:12px;font-weight:600;color:#fff;cursor:pointer;transition:opacity .1s,transform .08s;display:flex;align-items:center;justify-content:center;gap:6px}
   .btn-copy:hover{opacity:.88} .btn-copy:active{transform:scale(0.97)} .btn-copy.success{background:#1f7a49}
   .btn-clear{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 11px;font-family:var(--sans);font-size:11px;color:var(--muted);cursor:pointer;transition:color .1s,border-color .1s}
-  .btn-clear:hover{color:var(--red);border-color:rgba(255,95,109,0.4)}
+  .btn-clear:hover{color:var(--red);border-color:rgba(2,95,109,0.4)}
   .btn-copy-small{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--muted);cursor:pointer;display:flex;align-items:center;transition:color .1s,border-color .1s}
   .btn-copy-small:hover{color:var(--green);border-color:var(--green-border)}
   .btn-copy-small.success{color:var(--green);border-color:var(--green-border)}
@@ -113,7 +113,7 @@
     <div class="btn-grid">
       <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: NOW Prepaid $30/mo · 100 Mbps">NOW Prepaid <span class="price">$30</span></button>
       <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 300 Mbps $45/mo">300 Mbps <span class="price">$45</span></button>
-      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 500 Mbps $55/mo">500 Mbps <span class="price">$55</span></button>
+      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 500 Mbps $/mo">500 Mbps <span class="price">$</span></button>
       <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Gigabit $60/mo">Gigabit <span class="price">$60 ⭐</span></button>
       <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 2 Gbps $100/mo">2 Gbps <span class="price">$100</span></button>
           </div>
@@ -128,7 +128,7 @@
       <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Essentials+ $29.95/mo · 300 Mbps">Essentials+ <span class="price">$29.95</span></button>
     </div>
     <div class="detail-row"><button class="btn-detail" data-detail-key="essentials"
-        data-detail-text="Qualifies with ANY of:&#10;• SNAP · Medicaid · SSI · TANF&#10;• National School Lunch Program / Head Start&#10;• Public / Section 8 housing assistance&#10;• LIHEAP · WIC · VA Pension · Pell Grant&#10;• Income-based: ≤$2,510/mo ($30,120/yr) single&#10;&#10;• Must be new Xfinity customer (no service in last 90 days)&#10;• No outstanding Comcast debt under 1 year&#10;• Equipment incl. · Self-install · No contract · No credit check&#10;• Apply: internetessentials.com or 1-855-846-8376">+ details</button></div>
+        data-detail-text="Qualifies with ANY of:&#10;• SNAP · Medicaid · SSI · TANF&#10;• National School Lunch Program / Head Start&#10;• Public / Section 8 housing assistance&#10;• LIHEAP · WIC · VA Pension · Pell Grant&#10;• Income-based: ≤$2,510/mo ($30,120/yr) single&#10;&#10;• Must be new Xfinity customer (no service in last 90 days)&#10;• No outstanding Comcast debt under 1 year&#10;• Equipment incl. · Self-install · No contract · No credit check&#10;• Apply: internetessentials.com or 1-8-846-8376">+ details</button></div>
   </div>
 
   <!-- TELEVISION -->
@@ -139,7 +139,7 @@
       <button class="item" data-key="nowtv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV Latino $15/mo · Spanish-language + local ch">NOW TV Latino <span class="price">$15</span></button>
     </div>
     <div class="btn-grid">
-      <button class="item" data-key="tv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Core $55/mo · 10+ ch">Core <span class="price">$55</span></button>
+      <button class="item" data-key="tv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Core $/mo · 10+ ch">Core <span class="price">$55</span></button>
       <button class="item" data-key="tv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Sports & News $90/mo · 50+ ch">Sports & News <span class="price">$90</span></button>
       <button class="item" data-key="tv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Kids & Entertainment $105/mo · 125+ ch">Kids & Ent <span class="price">$105</span></button>
       <button class="item" data-key="tv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Premium $135/mo · 185+ ch">Premium <span class="price">$135</span></button>
@@ -432,7 +432,7 @@
       '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Essentials+ $29.95/mo · 300 Mbps': 29.95,
     };
     const tvPrices = {
-      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Core $55/mo · 10+ ch': 55,
+      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Core $65/mo · 10+ ch': 55,
       '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $20/mo · 125+ ch · 20hr DVR': 20,
       '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $30/mo · 125+ ch · 20hr DVR · Netflix · Apple TV+ · Peacock': 30,
       '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV Latino $15/mo · Spanish-language + local ch': 15,
