@@ -60,7 +60,11 @@ const CONFIG = {
     heading: '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧',
     bundleCategory: 'tv',
     exclusive: 'tv',
-    // TV details are dynamic (depend on which plan is picked) — see getDetailText().
+    // TV details change based on the picked plan. Edit the three templates below.
+    // {dvr} is replaced with the selected plan's `dvr` value (e.g. "150hr").
+    detailsWhenNone:   '• X1 box · 300hr DVR · Voice remote · 4K · No contract',
+    detailsWhenStream: '• No box needed · 20hr DVR · Stream on any device · No contract',
+    detailsWhenCable:  '• X1 box · {dvr} DVR · Voice remote · 4K · No contract',
     items: [
       { id:'nowtv',       label:'NOW TV',              price:20,  kind:'stream', dvr:'20hr',  summary:'𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $20ᴍᴏ · 125+ ch · 20hr DVR' },
       { id:'nowtv-latino',label:'NOW TV Latino',       price:15,  kind:'stream', dvr:'20hr',  summary:'𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV Latino $15ᴍᴏ · Spanish-language + local ch' },
@@ -457,13 +461,13 @@ function isCategoryOn(cat) {
   return false;
 }
 
-/* ---- Detail text (TV is dynamic) ---- */
+/* ---- Detail text (TV pulls dynamic templates from CONFIG.tv) ---- */
 function getDetailText(key) {
   if (key === 'tv') {
     const picked = CONFIG.tv.items.find(i => state.selected[i.id]);
-    if (!picked) return '• X1 box · 300hr DVR · Voice remote · 4K · No contract';
-    if (picked.kind === 'stream') return '• No box needed · 20hr DVR · Stream on any device · No contract';
-    return `• X1 box · ${picked.dvr} DVR · Voice remote · 4K · No contract`;
+    if (!picked)                  return CONFIG.tv.detailsWhenNone;
+    if (picked.kind === 'stream') return CONFIG.tv.detailsWhenStream;
+    return CONFIG.tv.detailsWhenCable.replace('{dvr}', picked.dvr);
   }
   return CONFIG[key] ? CONFIG[key].details : null;
 }
