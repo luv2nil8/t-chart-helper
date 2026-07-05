@@ -4,8 +4,193 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Xfinity Plan Builder</title>
+
+<script>
+/* ============================================================================
+   CONFIG — EDIT EVERYTHING HERE
+   ============================================================================
+   Each section has a heading and a list of items.  Each item has:
+     id       : unique internal name (no spaces). Used by the logic only.
+     label    : short text shown ON the button.
+     price    : dollars per month (a number). Used for the running total.
+     summary  : the line that gets COPIED to the clipboard when selected.
+     exclusive: (optional) group name. Items sharing a group can't both be
+                picked — choosing one deselects the other (e.g. internet tiers).
+
+   Sections also have:
+     heading  : the bold title shown above the buttons.
+     details  : the fine-print text shown when "+ details" is toggled.
+                Use \n for new lines.
+   ============================================================================ */
+const CONFIG = {
+
+  /* ---------------- INTERNET ---------------- */
+  internet: {
+    heading: '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭',
+    bundleCategory: 'internet',            // required for any bundle discount
+    exclusive: 'internet',                 // only one internet plan at a time
+    details: '• Unlimited data · No caps · 5-yr price lock · AutoPay bank acct = −$10ᴍᴏ · Self-install free / Pro $100',
+    items: [
+      { id:'now-prepaid', label:'NOW Prepaid', price:30,  summary:'𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: NOW Prepaid $30ᴍᴏ · 100 Mbps' },
+      { id:'i300',        label:'300 Mbps',    price:45,  summary:'𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 300 Mbps $45ᴍᴏ' },
+      { id:'i500',        label:'500 Mbps',    price:55,  summary:'𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 500 Mbps $55ᴍᴏ' },
+      { id:'igig',        label:'Gigabit ⭐',  price:60,  summary:'𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Gigabit $60ᴍᴏ' },
+      { id:'i2gig',       label:'2 Gbps',      price:100, summary:'𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 2 Gbps $100ᴍᴏ' },
+    ],
+  },
+
+  /* ---------------- INTERNET ESSENTIALS (low-income) ---------------- */
+  essentials: {
+    heading: '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭 𝐄𝐬𝐬𝐞𝐧𝐭𝐢𝐚𝐥𝐬',
+    bundleCategory: 'internet',            // still counts as internet for bundles
+    exclusive: 'internet',                 // and is exclusive with the tiers above
+    details: 'Qualifies with ANY of:\n• SNAP · Medicaid · SSI · TANF\n• National School Lunch Program / Head Start\n• Public / Section 8 housing assistance\n• LIHEAP · WIC · VA Pension · Pell Grant\n• Income-based: ≤$2,510ᴍᴏ ($30,120/yr) single\n\n• Must be new Xfinity customer (no service in last 90 days)\n• No outstanding Comcast debt under 1 year\n• Equipment incl. · Self-install · No contract · No credit check\n• Apply: internetessentials.com or 1-855-846-8376',
+    items: [
+      { id:'ess',     label:'Essentials',  price:14.95, summary:'𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Essentials $14.95ᴍᴏ · 75 Mbps' },
+      { id:'ess-plus',label:'Essentials+', price:29.95, summary:'𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Essentials+ $29.95ᴍᴏ · 300 Mbps' },
+    ],
+  },
+
+  /* ---------------- TELEVISION ----------------
+     NOW TV / NOW TV Latino are streaming and CANNOT be on the same
+     account as cable (Core/Sports/Kids/Premium). They're all in one
+     exclusive group so only one TV product can be picked at a time.
+     `dvr` is used to show the right DVR hours in the TV details. */
+  tv: {
+    heading: '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧',
+    bundleCategory: 'tv',
+    exclusive: 'tv',
+    // TV details are dynamic (depend on which plan is picked) — see getDetailText().
+    items: [
+      { id:'nowtv',       label:'NOW TV',              price:20,  kind:'stream', dvr:'20hr',  summary:'𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $20ᴍᴏ · 125+ ch · 20hr DVR' },
+      { id:'nowtv-latino',label:'NOW TV Latino',       price:15,  kind:'stream', dvr:'20hr',  summary:'𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV Latino $15ᴍᴏ · Spanish-language + local ch' },
+      { id:'core',        label:'Core',                price:55,  kind:'cable',  dvr:'150hr', summary:'𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Core $55ᴍᴏ · 10+ ch' },
+      { id:'sports',      label:'Sports & News',       price:90,  kind:'cable',  dvr:'300hr', summary:'𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Sports & News $90ᴍᴏ · 50+ ch' },
+      { id:'kids',        label:'Kids & Ent',          price:105, kind:'cable',  dvr:'300hr', summary:'𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Kids & Entertainment $105ᴍᴏ · 125+ ch' },
+      { id:'premium',     label:'Premium',             price:135, kind:'cable',  dvr:'300hr', summary:'𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Premium $135ᴍᴏ · 185+ ch' },
+    ],
+    // The row of streaming buttons is split from cable visually — handled in build().
+  },
+
+  /* ---------------- STREAMSAVER ----------------
+     Basic and Premium are exclusive. The "NOW add-on" is special: it
+     upgrades the NOW TV line in place (see NOW_ADDON below) instead of
+     adding its own line. */
+  stream: {
+    heading: '𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫',
+    exclusive: 'stream',
+    details: '• Requires Xfinity internet · Keep existing profiles · 4K stream box incl.',
+    items: [
+      { id:'ss-basic',   label:'Basic',   price:18, summary:'𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 $18ᴍᴏ · Netflix · Apple TV+ · Peacock' },
+      { id:'ss-premium', label:'Premium', price:35, summary:'𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 Premium $35ᴍᴏ · Netflix · Apple TV+ · Peacock · Disney+/Hulu · Max' },
+    ],
+  },
+
+  /* ---------------- SECURITY ----------------
+     Smart Home + Pro Monitoring combine into one $55 line when both are on.
+     Pro Monitoring REQUIRES Smart Home (greyed out until Smart Home is picked).
+     Cameras are steppers, capped at 6 total (indoor + outdoor). */
+  security: {
+    heading: '𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲',
+    bundleCategory: 'security',
+    details: '• Smart Home req. for cameras · Cameras: purchase or lease · No contract',
+    // toggle items (Smart Home / Pro Monitoring)
+    items: [
+      { id:'smarthome', label:'Smart Home',     price:10, summary:'𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Smart Home $10ᴍᴏ' },
+      { id:'promon',    label:'Pro Monitoring', price:45, requires:'smarthome', summary:'𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Pro Monitoring $45ᴍᴏ' },
+    ],
+    combinedPrice: 55,          // price shown when BOTH smarthome + promon are on
+    // camera steppers
+    cameras: [
+      { id:'indoor',  label:'Indoor',   price:2.50, summaryName:'Indoor' },
+      { id:'outdoor', label:'Outdoor',  price:5.00, summaryName:'Out' },
+    ],
+    cameraMax: 6,               // combined indoor + outdoor limit
+  },
+
+  /* ---------------- HOME PHONE ---------------- */
+  voice: {
+    heading: '𝐇𝐨𝐦𝐞 𝐏𝐡𝐨𝐧𝐞',
+    bundleCategory: 'voice',
+    details: '• Unlimited nationwide · 90+ countries · Voicemail-to-text · Spam blocking · No contract',
+    items: [
+      { id:'voice-premier', label:'Voice Premier', price:35, summary:'𝐇𝐨𝐦𝐞 𝐏𝐡𝐨𝐧𝐞: Voice Premier $30–$40ᴍᴏ' },
+    ],
+  },
+
+  /* ---------------- MOBILE ----------------
+     Mobile lines are steppers (0-10 each). Prices are FLAT per line — the
+     bundle discount is applied to internet, not to the mobile lines.
+     Watch + Tablet combined bill is capped (see mobileDeviceCap). */
+  mobile: {
+    heading: '𝐌𝐨𝐛𝐢𝐥𝐞',
+    details: '𝗣𝗹𝘂𝘀 𝗴𝗲𝘁𝘀 𝘆𝗼𝘂 𝗺𝗼𝗿𝗲:\n• Unlimited data, never slows down\n• 50GB hotspot vs 15GB\n• 4K streaming vs 720p\n• Device protection included\n𝗕𝗼𝘁𝗵 𝗽𝗹𝗮𝗻𝘀 𝗶𝗻𝗰𝗹𝘂𝗱𝗲:\n• Smartwatch gets own data plan $10\n• Unlimited hotspot (slower after cap)\n• Works in 200+ countries\n• Free calls to Mexico & Canada\n• Security protection',
+    lines: [
+      { id:'select', label:'𝗦𝗲𝗹𝗲𝗰𝘁', price:30, summaryName:'𝗦𝗲𝗹𝗲𝗰𝘁' },
+      { id:'plus',   label:'𝗣𝗹𝘂𝘀',   price:45, summaryName:'𝗣𝗹𝘂𝘀' },
+    ],
+    devices: [
+      { id:'watch',  label:'Smartwatch', price:10, summaryName:'Smartwatch' },
+      { id:'tablet', label:'Tablet',     price:20, summaryName:'Tablet' },
+    ],
+    deviceCap: 35,     // watch + tablet combined billing cap (dollars/mo)
+    maxPerStepper: 10, // max count on any single stepper
+  },
+
+  /* ---------------- BUNDLE DISCOUNTS ----------------
+     Discounts apply to the INTERNET bill and require internet to be selected.
+     Service bundle counts how many of {tv, voice, security} are active.
+     Mobile bundle is a flat amount if ANY mobile line exists. */
+  discounts: {
+    doublePlay: 20,   // internet + 1 service
+    triplePlay: 40,   // internet + 2 services
+    quadPlay:   60,   // internet + 3 services
+    mobile:     10,   // flat, if any mobile line + internet
+  },
+};
+
+/* The NOW add-on button upgrades the NOW TV line to include StreamSaver.
+   Edit the price bump / added apps here. */
+const NOW_ADDON = {
+  price: 10,     // added to NOW TV price ($20 -> $30)
+  addLabel: '+$10',
+  buttonLabel: 'NOW add-on',
+  // The upgraded NOW TV summary line:
+  upgradedSummary: '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $30ᴍᴏ · 125+ ch · 20hr DVR · Netflix · Apple TV+ · Peacock',
+};
+
+</script>
+
+
+<!-- ============================================================================
+     XFINITY PLAN BUILDER
+     ============================================================================
+
+     HOW TO EDIT THIS FILE
+     ---------------------
+     Almost everything you'll ever want to change lives in ONE place:
+     the CONFIG object at the very TOP of the file (right after <title>,
+     search for "const CONFIG").  You do NOT need to touch the HTML or logic.
+
+     Common edits:
+       • Change a price   -> find the plan in CONFIG, edit its `price`.
+       • Change a label   -> edit `label` (button text) or `summary` (copied text).
+       • Change details   -> edit the `details` string for that section.
+       • Add a new plan    -> copy an existing { ... } line in the same section
+                             and change its values.  Keep the `id` unique.
+       • Remove a plan     -> delete its { ... } line.
+
+     Notes on formatting:
+       • Bold header text like 𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭 or 𝗦𝗲𝗹𝗲𝗰𝘁 uses Unicode bold
+         characters so it survives copy/paste into tools that strip HTML.
+         Copy an existing one to reuse the style.
+       • In `details`, use \n to start a new line.
+     ============================================================================ -->
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+  /* ---- Color + font theme (safe to tweak) ---- */
   :root {
     --bg:#0d0d0f; --surface:#16161a; --surface2:#1e1e24;
     --border:rgba(255,255,255,0.08); --accent:#4f7fff; --accent-dim:rgba(79,127,255,0.15);
@@ -15,6 +200,8 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);height:100vh;display:grid;grid-template-columns:1fr 380px;grid-template-rows:auto 1fr;overflow:hidden}
+
+  /* ---- Responsive: stack panels on iPad / phone ---- */
   @media(max-width:820px){
     body{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:100vh;overflow:hidden}
     header .hint{display:none}
@@ -23,6 +210,7 @@
     .preview{flex:1;min-height:0;overflow-y:auto}
     .actions{flex-shrink:0;position:relative;bottom:auto}
   }
+
   header{grid-column:1/-1;padding:13px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;background:var(--surface)}
   .logo{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);background:var(--accent-dim);padding:3px 9px;border-radius:4px;border:1px solid rgba(79,127,255,0.3)}
   header h1{font-size:14px;font-weight:500}
@@ -41,26 +229,26 @@
   /* Item buttons */
   .btn-grid{display:flex;flex-wrap:wrap;gap:5px}
   .item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:12px;font-family:var(--sans);color:var(--text);cursor:pointer;transition:background .12s,border-color .12s,color .12s,transform .08s;line-height:1.4;text-align:left}
-  .item:hover{background:var(--surface2);border-color:rgba(2,2,2,0.18)}
+  .item:hover{background:var(--surface2);border-color:rgba(255,255,255,0.18)}
   .item:active{transform:scale(0.96)}
   .item.active{background:var(--accent-dim);border-color:var(--accent);color:#a8c0ff}
   .item .price{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:3px}
-  .item.active .price{color:rgba(168,192,2,0.7)}
+  .item.active .price{color:rgba(168,192,255,0.7)}
+  .item.disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
 
-  /* Mobile steppers */
+  /* Steppers (mobile lines + cameras) */
   .mobile-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-
   .mobile-row{display:flex;align-items:stretch;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;transition:border-color .12s;width:100%}
   .mobile-row.active{border-color:var(--accent)}
   .mobile-label{flex:1;padding:5px 10px;font-size:12px;color:var(--text);user-select:none;transition:background .12s,color .12s;display:flex;align-items:center}
   .mobile-row.active .mobile-label{color:#a8c0ff;background:var(--accent-dim)}
   .mobile-label .price{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:4px}
-  .mobile-row.active .mobile-label .price{color:rgba(168,192,2,0.7)}
+  .mobile-row.active .mobile-label .price{color:rgba(168,192,255,0.7)}
   .stepper{display:flex;align-items:center;border-left:1px solid var(--border);flex-shrink:0}
-  .mobile-row.active .stepper{border-color:rgba(79,127,2,0.3)}
+  .mobile-row.active .stepper{border-color:rgba(79,127,255,0.3)}
   .step-btn{background:none;border:none;color:var(--muted);width:26px;height:100%;min-height:28px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .1s,background .1s;font-family:var(--mono);line-height:1}
   .step-btn:hover{color:var(--text);background:var(--surface2)}
-  .mobile-row.active .step-btn:hover{background:rgba(79,127,2,0.2);color:#a8c0ff}
+  .mobile-row.active .step-btn:hover{background:rgba(79,127,255,0.2);color:#a8c0ff}
   .step-btn:disabled{opacity:.2;cursor:default}
   .step-btn:disabled:hover{background:none;color:var(--muted)}
   .step-count{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);min-width:20px;text-align:center}
@@ -69,7 +257,7 @@
   /* Right panel */
   .panel-right-header{padding:10px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
   .panel-right-header span{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-  .count-badge{font-size:10px;font-family:var(--mono);background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:20px;border:1px solid rgba(79,127,2,0.25)}
+  .count-badge{font-size:10px;font-family:var(--mono);background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:20px;border:1px solid rgba(79,127,255,0.25)}
   .preview{flex:1;min-height:0;padding:9px 12px;font-family:var(--mono);font-size:11.5px;line-height:1.8;color:var(--text);overflow-y:auto}
   .preview .empty{color:var(--faint);font-style:italic}
   .preview .line{padding:1px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:5px}
@@ -84,16 +272,15 @@
   .discount-area-lines{font-family:var(--mono);font-size:10.5px;color:var(--green);line-height:1.6;white-space:pre-wrap}
   .total-bar{padding:5px 14px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
   .total-bar strong{color:var(--green)}
+  .total-label{font-size:10px;color:var(--muted);font-family:var(--mono)}
   .actions{padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:7px;align-items:center;flex-shrink:0}
   .btn-copy{flex:1;background:var(--accent);border:none;border-radius:6px;padding:8px 14px;font-family:var(--sans);font-size:12px;font-weight:600;color:#fff;cursor:pointer;transition:opacity .1s,transform .08s;display:flex;align-items:center;justify-content:center;gap:6px}
   .btn-copy:hover{opacity:.88} .btn-copy:active{transform:scale(0.97)} .btn-copy.success{background:#1f7a49}
   .btn-clear{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 11px;font-family:var(--sans);font-size:11px;color:var(--muted);cursor:pointer;transition:color .1s,border-color .1s}
-  .btn-clear:hover{color:var(--red);border-color:rgba(2,95,109,0.4)}
+  .btn-clear:hover{color:var(--red);border-color:rgba(255,95,109,0.4)}
   .btn-copy-small{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--muted);cursor:pointer;display:flex;align-items:center;transition:color .1s,border-color .1s}
   .btn-copy-small:hover{color:var(--green);border-color:var(--green-border)}
   .btn-copy-small.success{color:var(--green);border-color:var(--green-border)}
-  .total-label{font-size:10px;color:var(--muted);font-family:var(--mono)}
-  .item.disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
   ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--faint);border-radius:2px}
 </style>
 </head>
@@ -105,144 +292,10 @@
   <span class="hint">Items = bare · + details adds fine print · discounts auto-apply</span>
 </header>
 
-<div class="panel-left">
+<!-- The left panel (all the buttons) is generated automatically from CONFIG. -->
+<div class="panel-left" id="panelLeft"></div>
 
-  <!-- INTERNET -->
-  <div class="section">
-    <div class="section-label">𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭</div>
-    <div class="btn-grid">
-      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: NOW Prepaid $30/mo · 100 Mbps">NOW Prepaid <span class="price">$30</span></button>
-      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 300 Mbps $45/mo">300 Mbps <span class="price">$45</span></button>
-      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 500 Mbps $/mo">500 Mbps <span class="price">$</span></button>
-      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Gigabit $60/mo">Gigabit <span class="price">$60 ⭐</span></button>
-      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 2 Gbps $100/mo">2 Gbps <span class="price">$100</span></button>
-          </div>
-    <div class="detail-row"><button class="btn-detail" data-detail-key="internet"
-        data-detail-text="• Unlimited data · No caps · 5-yr price lock · AutoPay bank acct = −$10/mo · Self-install free / Pro $100">+ details</button></div>
-  </div>
-
-  <div class="section">
-    <div class="section-label">𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭 𝐄𝐬𝐬𝐞𝐧𝐭𝐢𝐚𝐥𝐬</div>
-    <div class="btn-grid">
-      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Essentials $14.95/mo · 75 Mbps">Essentials <span class="price">$14.95</span></button>
-      <button class="item" data-key="internet" data-text="𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Essentials+ $29.95/mo · 300 Mbps">Essentials+ <span class="price">$29.95</span></button>
-    </div>
-    <div class="detail-row"><button class="btn-detail" data-detail-key="essentials"
-        data-detail-text="Qualifies with ANY of:&#10;• SNAP · Medicaid · SSI · TANF&#10;• National School Lunch Program / Head Start&#10;• Public / Section 8 housing assistance&#10;• LIHEAP · WIC · VA Pension · Pell Grant&#10;• Income-based: ≤$2,510/mo ($30,120/yr) single&#10;&#10;• Must be new Xfinity customer (no service in last 90 days)&#10;• No outstanding Comcast debt under 1 year&#10;• Equipment incl. · Self-install · No contract · No credit check&#10;• Apply: internetessentials.com or 1-8-846-8376">+ details</button></div>
-  </div>
-
-  <!-- TELEVISION -->
-  <div class="section">
-    <div class="section-label">𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧</div>
-    <div class="btn-grid" style="margin-bottom:5px">
-      <button class="item" data-key="nowtv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $20/mo · 125+ ch · 20hr DVR">NOW TV <span class="price">$20</span></button>
-      <button class="item" data-key="nowtv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV Latino $15/mo · Spanish-language + local ch">NOW TV Latino <span class="price">$15</span></button>
-    </div>
-    <div class="btn-grid">
-      <button class="item" data-key="tv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Core $/mo · 10+ ch">Core <span class="price">$55</span></button>
-      <button class="item" data-key="tv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Sports & News $90/mo · 50+ ch">Sports & News <span class="price">$90</span></button>
-      <button class="item" data-key="tv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Kids & Entertainment $105/mo · 125+ ch">Kids & Ent <span class="price">$105</span></button>
-      <button class="item" data-key="tv" data-text="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Premium $135/mo · 185+ ch">Premium <span class="price">$135</span></button>
-    </div>
-    <div class="detail-row"><button class="btn-detail" data-detail-key="tv"
-        data-detail-text="• X1 box · 300hr DVR · Voice remote · 4K · No contract">+ details</button></div>
-  </div>
-
-  <!-- STREAMSAVER -->
-  <div class="section">
-    <div class="section-label">𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫</div>
-    <div class="btn-grid">
-      <button class="item" data-key="stream" data-text="𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 $18/mo · Netflix · Apple TV+ · Peacock">Basic <span class="price">$18</span></button>
-      <button class="item" data-key="stream" data-text="𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 Premium $35/mo · Netflix · Apple TV+ · Peacock · Disney+/Hulu · Max">Premium <span class="price">$35</span></button>
-      <button class="item" id="btn-streamsaver-addon" data-addon-for="nowtv" data-text-base="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $20/mo · 125+ ch · 20hr DVR" data-text-upgraded="𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $30/mo · 125+ ch · 20hr DVR · Netflix · Apple TV+ · Peacock">NOW add-on <span class="price">+$10</span></button>
-    </div>
-    <div class="detail-row"><button class="btn-detail" data-detail-key="stream"
-        data-detail-text="• Requires Xfinity internet · Keep existing profiles · 4K stream box incl.">+ details</button></div>
-  </div>
-
-  <!-- MOBILE -->
-  <div class="section">
-    <div class="section-label">𝐌𝐨𝐛𝐢𝐥𝐞</div>
-    <div class="mobile-grid">
-      <div class="mobile-row" id="row-select">
-        <div class="mobile-label">𝗦𝗲𝗹𝗲𝗰𝘁 <span class="price" id="price-select">$30/line</span></div>
-        <div class="stepper">
-          <button class="step-btn" id="dec-select" disabled>−</button>
-          <span class="step-count" id="count-select">0</span>
-          <button class="step-btn" id="inc-select">+</button>
-        </div>
-      </div>
-      <div class="mobile-row" id="row-plus">
-        <div class="mobile-label">𝗣𝗹𝘂𝘀 <span class="price" id="price-plus">$45/line</span></div>
-        <div class="stepper">
-          <button class="step-btn" id="dec-plus" disabled>−</button>
-          <span class="step-count" id="count-plus">0</span>
-          <button class="step-btn" id="inc-plus">+</button>
-        </div>
-      </div>
-      <div class="mobile-row" id="row-watch" style="grid-column:1">
-        <div class="mobile-label">Smartwatch <span class="price" id="price-watch">$10/line</span></div>
-        <div class="stepper">
-          <button class="step-btn" id="dec-watch" disabled>−</button>
-          <span class="step-count" id="count-watch">0</span>
-          <button class="step-btn" id="inc-watch">+</button>
-        </div>
-      </div>
-      <div class="mobile-row" id="row-tablet" style="grid-column:2">
-        <div class="mobile-label">Tablet <span class="price" id="price-tablet">$20/line</span></div>
-        <div class="stepper">
-          <button class="step-btn" id="dec-tablet" disabled>−</button>
-          <span class="step-count" id="count-tablet">0</span>
-          <button class="step-btn" id="inc-tablet">+</button>
-        </div>
-      </div>
-    </div>
-    <div class="detail-row"><button class="btn-detail" data-detail-key="mobile"
-        data-detail-text="𝗣𝗹𝘂𝘀 𝗴𝗲𝘁𝘀 𝘆𝗼𝘂 𝗺𝗼𝗿𝗲:&#10;• Unlimited data, never slows down&#10;• 50GB hotspot vs 15GB&#10;• 4K streaming vs 720p&#10;• Device protection included&#10;𝗕𝗼𝘁𝗵 𝗽𝗹𝗮𝗻𝘀 𝗶𝗻𝗰𝗹𝘂𝗱𝗲:&#10;• Smartwatch gets own data plan $10&#10;• Unlimited hotspot (slower after cap)&#10;• Works in 200+ countries&#10;• Free calls to Mexico &amp; Canada&#10;• Security protection">+ details</button></div>
-  </div>
-
-  <!-- SECURITY -->
-  <div class="section">
-    <div class="section-label">𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲</div>
-    <div class="btn-grid">
-      <button class="item" id="btn-smarthome" data-key="security" data-text="𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Smart Home $10/mo">Smart Home <span class="price">$10</span></button>
-      <button class="item" id="btn-promonitoring" data-key="security" data-text="𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Pro Monitoring $45/mo">Pro Monitoring <span class="price">$45</span></button>
-    </div>
-    <div class="mobile-grid" style="margin-top:5px">
-      <div class="mobile-row" id="row-indoor">
-        <div class="mobile-label">Indoor Cam <span class="price">$2.50/mo</span></div>
-        <div class="stepper">
-          <button class="step-btn" id="dec-indoor" disabled>−</button>
-          <span class="step-count" id="count-indoor">0</span>
-          <button class="step-btn" id="inc-indoor">+</button>
-        </div>
-      </div>
-      <div class="mobile-row" id="row-outdoor">
-        <div class="mobile-label">Doorbell/Outdoor <span class="price">$5/mo</span></div>
-        <div class="stepper">
-          <button class="step-btn" id="dec-outdoor" disabled>−</button>
-          <span class="step-count" id="count-outdoor">0</span>
-          <button class="step-btn" id="inc-outdoor">+</button>
-        </div>
-      </div>
-    </div>
-    <div class="detail-row"><button class="btn-detail" data-detail-key="security"
-        data-detail-text="• Smart Home req. for cameras · Cameras: purchase or lease · No contract">+ details</button></div>
-  </div>
-
-  <!-- VOICE -->
-  <div class="section">
-    <div class="section-label">𝐇𝐨𝐦𝐞 𝐏𝐡𝐨𝐧𝐞</div>
-    <div class="btn-grid">
-      <button class="item" data-key="voice" data-text="𝐇𝐨𝐦𝐞 𝐏𝐡𝐨𝐧𝐞: Voice Premier $30–$40/mo">Voice Premier <span class="price">$30–$40</span></button>
-    </div>
-    <div class="detail-row"><button class="btn-detail" data-detail-key="voice"
-        data-detail-text="• Unlimited nationwide · 90+ countries · Voicemail-to-text · Spam blocking · No contract">+ details</button></div>
-  </div>
-
-</div>
-
-<!-- RIGHT PANEL -->
+<!-- RIGHT PANEL: plan summary + totals + copy buttons -->
 <div class="panel-right">
   <div class="panel-right-header">
     <span>Plan Summary</span>
@@ -259,8 +312,8 @@
     <span class="total-label">Monthly Total</span>
     <div style="display:flex;align-items:center;gap:8px">
       <strong id="totalCount">0</strong>
-      <strong id="runningTotal" style="color:var(--green);font-family:var(--mono);font-size:12px">$0/mo</strong>
-      <button class="btn-copy-small" id="copyTotalBtn" title="Copy total line">
+      <strong id="runningTotal" style="color:var(--green);font-family:var(--mono);font-size:12px">$0ᴍᴏ</strong>
+      <button class="btn-copy-small" id="copyTotalBtn" title="Copy total (number only)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
       </button>
     </div>
@@ -275,336 +328,457 @@
 </div>
 
 <script>
-  const state = { lines:[], select:0, plus:0, watch:0, tablet:0, indoor:0, outdoor:0, details:{}, addonActive:false };
-  let monthlyTotal = 0;
-  const activeKeys = new Set();
+/* ============================================================================
+   LOGIC — you normally don't need to edit below this line.
+   ============================================================================ */
 
-  // NOW TV base and upgraded text (mirrors data attributes on the addon button)
-  const NOW_BASE     = '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $20/mo · 125+ ch · 20hr DVR';
-  const NOW_UPGRADED = '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $30/mo · 125+ ch · 20hr DVR · Netflix · Apple TV+ · Peacock';
+// Look up the NOW TV item + its base/upgraded summaries (used a lot)
+const NOW_ITEM       = CONFIG.tv.items.find(i => i.id === 'nowtv');
+const NOW_BASE       = NOW_ITEM.summary;
+const NOW_UPGRADED   = NOW_ADDON.upgradedSummary;
 
-  function nowTvLine() {
-    return state.lines.find(l => l.text === NOW_BASE || l.text === NOW_UPGRADED) || null;
+// Runtime state
+const state = {
+  selected: {},   // { itemId: true } for toggle items
+  steppers: {},   // { stepperId: count } for steppers
+  details:  {},   // { sectionKey: true } for open detail panels
+  addonActive: false,
+};
+
+let monthlyTotal = 0;
+
+/* ---- Build the left panel from CONFIG ---- */
+function build() {
+  const panel = document.getElementById('panelLeft');
+  let html = '';
+
+  // INTERNET
+  html += section('internet', grid(CONFIG.internet.items, 'internet'));
+  // ESSENTIALS
+  html += section('essentials', grid(CONFIG.essentials.items, 'essentials'));
+
+  // TELEVISION — split streaming row from cable row
+  const streamItems = CONFIG.tv.items.filter(i => i.kind === 'stream');
+  const cableItems  = CONFIG.tv.items.filter(i => i.kind === 'cable');
+  html += section('tv',
+    `<div class="btn-grid" style="margin-bottom:5px">${buttons(streamItems,'tv')}</div>` +
+    `<div class="btn-grid">${buttons(cableItems,'tv')}</div>`
+  );
+
+  // STREAMSAVER — normal items + the special NOW add-on button
+  const addonBtn = `<button class="item" id="btn-now-addon">${NOW_ADDON.buttonLabel} <span class="price">${NOW_ADDON.addLabel}</span></button>`;
+  html += section('stream', `<div class="btn-grid">${buttons(CONFIG.stream.items,'stream')}${addonBtn}</div>`);
+
+  // MOBILE — line steppers + device steppers
+  html += section('mobile',
+    `<div class="mobile-grid">` +
+      CONFIG.mobile.lines.map(l => stepperRow(l.id, l.label, l.price+'/line')).join('') +
+      CONFIG.mobile.devices.map((d,i) => stepperRow(d.id, d.label, d.price+'/line', i===0?1:2)).join('') +
+    `</div>`
+  );
+
+  // SECURITY — toggle items + camera steppers
+  html += section('security',
+    `<div class="btn-grid">${buttons(CONFIG.security.items,'security')}</div>` +
+    `<div class="mobile-grid" style="margin-top:5px">` +
+      CONFIG.security.cameras.map(c => stepperRow(c.id, c.label, c.price)).join('') +
+    `</div>`
+  );
+
+  // VOICE
+  html += section('voice', grid(CONFIG.voice.items,'voice'));
+
+  panel.innerHTML = html;
+}
+
+// Build a full section wrapper with heading, body, and + details toggle
+function section(key, body) {
+  const cfg = CONFIG[key];
+  const detail = cfg.details !== undefined || key === 'tv'
+    ? `<div class="detail-row"><button class="btn-detail" data-detail-key="${key}">+ details</button></div>`
+    : '';
+  return `<div class="section"><div class="section-label">${cfg.heading}</div>${body}${detail}</div>`;
+}
+
+function grid(items, sectionKey) { return `<div class="btn-grid">${buttons(items, sectionKey)}</div>`; }
+
+function buttons(items, sectionKey) {
+  return items.map(it =>
+    `<button class="item" data-id="${it.id}" data-section="${sectionKey}">${it.label} <span class="price">$${it.price}</span></button>`
+  ).join('');
+}
+
+function stepperRow(id, label, priceLabel, col) {
+  const style = col ? ` style="grid-column:${col}"` : '';
+  return `<div class="mobile-row" id="row-${id}"${style}>
+    <div class="mobile-label">${label} <span class="price">$${priceLabel}</span></div>
+    <div class="stepper">
+      <button class="step-btn" id="dec-${id}" disabled>−</button>
+      <span class="step-count" id="count-${id}">0</span>
+      <button class="step-btn" id="inc-${id}">+</button>
+    </div>
+  </div>`;
+}
+
+/* ---- Helpers to find items ---- */
+function findItem(id) {
+  for (const key of Object.keys(CONFIG)) {
+    const sec = CONFIG[key];
+    if (sec.items) { const it = sec.items.find(i => i.id === id); if (it) return {item:it, sectionKey:key}; }
+  }
+  return null;
+}
+
+/* ---- Bundle discounts (returns [{label, amount}]) ---- */
+function getBundleDiscounts() {
+  const internetOn = isCategoryOn('internet');
+  if (!internetOn) return [];
+  const out = [];
+  const tvOn    = isCategoryOn('tv');
+  const voiceOn = isCategoryOn('voice');
+  const secOn   = isCategoryOn('security');
+  const bundled = [tvOn, voiceOn, secOn].filter(Boolean).length;
+  if (bundled === 1) out.push({label:'💰 Double play discount (Internet + 1 service)', amount:CONFIG.discounts.doublePlay});
+  if (bundled === 2) out.push({label:'💰 Triple play discount (Internet + 2 services)', amount:CONFIG.discounts.triplePlay});
+  if (bundled >= 3) out.push({label:'💰 Quad play discount (Internet + 3 services)', amount:CONFIG.discounts.quadPlay});
+
+  const mobileOn = (state.steppers.select||0) + (state.steppers.plus||0) > 0;
+  if (mobileOn) out.push({label:'💰 Mobile bundle discount', amount:CONFIG.discounts.mobile});
+  return out;
+}
+
+// Is any item whose bundleCategory === cat currently selected?
+function isCategoryOn(cat) {
+  for (const key of Object.keys(CONFIG)) {
+    const sec = CONFIG[key];
+    if (sec.bundleCategory !== cat || !sec.items) continue;
+    if (sec.items.some(i => state.selected[i.id])) return true;
+  }
+  return false;
+}
+
+/* ---- Detail text (TV is dynamic) ---- */
+function getDetailText(key) {
+  if (key === 'tv') {
+    const picked = CONFIG.tv.items.find(i => state.selected[i.id]);
+    if (!picked) return '• X1 box · 300hr DVR · Voice remote · 4K · No contract';
+    if (picked.kind === 'stream') return '• No box needed · 20hr DVR · Stream on any device · No contract';
+    return `• X1 box · ${picked.dvr} DVR · Voice remote · 4K · No contract`;
+  }
+  return CONFIG[key] ? CONFIG[key].details : null;
+}
+
+/* ---- Build the ordered list of summary lines ---- */
+function getAllOutputLines() {
+  const result = [];
+  const pushDetail = (key) => { if (state.details[key]) { const d = getDetailText(key); if (d) result.push({text:d, detail:true}); } };
+
+  // INTERNET + ESSENTIALS
+  ['internet','essentials'].forEach(key => {
+    CONFIG[key].items.forEach(it => { if (state.selected[it.id]) result.push({text: summaryFor(it), detail:false}); });
+    pushDetail(key);
+  });
+
+  // TELEVISION
+  CONFIG.tv.items.forEach(it => { if (state.selected[it.id]) result.push({text: summaryFor(it), detail:false}); });
+  pushDetail('tv');
+
+  // STREAMSAVER
+  CONFIG.stream.items.forEach(it => { if (state.selected[it.id]) result.push({text: summaryFor(it), detail:false}); });
+  pushDetail('stream');
+
+  // MOBILE lines
+  const mobParts = [];
+  CONFIG.mobile.lines.forEach(l => {
+    const n = state.steppers[l.id] || 0;
+    if (n > 0) mobParts.push(`${l.summaryName} × ${n}: $${n*l.price}ᴍᴏ`);
+  });
+  if (mobParts.length) result.push({text:`𝐌𝐨𝐛𝐢𝐥𝐞: ${mobParts.join(' · ')}`, detail:false});
+
+  // MOBILE devices (watch/tablet) with combined cap
+  const devParts = [];
+  let devRaw = 0;
+  CONFIG.mobile.devices.forEach(d => {
+    const n = state.steppers[d.id] || 0;
+    if (n > 0) { devParts.push(`${d.summaryName} $${d.price}ᴍᴏ × ${n}`); devRaw += n*d.price; }
+  });
+  if (devParts.length) {
+    const billed = Math.min(devRaw, CONFIG.mobile.deviceCap);
+    result.push({text:`${devParts.join(' · ')} · billed $${billed}ᴍᴏ`, detail:false});
+  }
+  pushDetail('mobile');
+
+  // SECURITY (combine smart home + pro monitoring)
+  const shOn  = state.selected['smarthome'];
+  const proOn = state.selected['promon'];
+  if (shOn || proOn) {
+    let line = '𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲:';
+    if (shOn && proOn) line += ` Smart Home + Pro Monitoring $${CONFIG.security.combinedPrice}ᴍᴏ`;
+    else if (shOn)     line += ` Smart Home $${CONFIG.security.items[0].price}ᴍᴏ`;
+    else               line += ` Pro Monitoring $${CONFIG.security.items[1].price}ᴍᴏ`;
+    result.push({text:line, detail:false});
+  }
+  // Cameras — formatted like mobile lines (Name × N: $total ᴍᴏ)
+  const camParts = [];
+  CONFIG.security.cameras.forEach(c => {
+    const n = state.steppers[c.id] || 0;
+    if (n > 0) camParts.push(`${c.summaryName} × ${n}: $${(n*c.price).toFixed(2).replace(/\.00$/,'')}ᴍᴏ`);
+  });
+  if (camParts.length) result.push({text:`𝐂𝐚𝐦𝐬: ${camParts.join(' · ')}`, detail:false});
+  pushDetail('security');
+
+  // VOICE
+  CONFIG.voice.items.forEach(it => { if (state.selected[it.id]) result.push({text: summaryFor(it), detail:false}); });
+  pushDetail('voice');
+
+  // DISCOUNTS
+  getBundleDiscounts().forEach(d => result.push({text:d.label, detail:false}));
+
+  return result;
+}
+
+// Return the correct summary for an item (NOW TV may be upgraded)
+function summaryFor(it) {
+  if (it.id === 'nowtv' && state.addonActive) return NOW_UPGRADED;
+  return it.summary;
+}
+
+/* ---- Running total ---- */
+function computeTotal() {
+  let gross = 0;
+  // toggle items
+  for (const key of Object.keys(CONFIG)) {
+    const sec = CONFIG[key];
+    if (!sec.items) continue;
+    sec.items.forEach(it => { if (state.selected[it.id]) gross += it.price; });
+  }
+  // NOW add-on bump
+  if (state.selected['nowtv'] && state.addonActive) gross += NOW_ADDON.price;
+  // security combine correction: both selected -> use combinedPrice instead of 10+45
+  if (state.selected['smarthome'] && state.selected['promon']) {
+    gross -= (CONFIG.security.items[0].price + CONFIG.security.items[1].price);
+    gross += CONFIG.security.combinedPrice;
+  }
+  // mobile lines
+  CONFIG.mobile.lines.forEach(l => gross += (state.steppers[l.id]||0) * l.price);
+  // mobile devices (capped)
+  let devRaw = 0;
+  CONFIG.mobile.devices.forEach(d => devRaw += (state.steppers[d.id]||0) * d.price);
+  gross += Math.min(devRaw, CONFIG.mobile.deviceCap);
+  // cameras
+  CONFIG.security.cameras.forEach(c => gross += (state.steppers[c.id]||0) * c.price);
+
+  const totalDiscount = getBundleDiscounts().reduce((s,d)=>s+d.amount, 0);
+  monthlyTotal = Math.max(0, gross - totalDiscount);
+  return { monthlyTotal, totalDiscount };
+}
+
+/* ---- Render ---- */
+function render() {
+  const preview = document.getElementById('preview');
+  const allLines = getAllOutputLines();
+  const disc = getBundleDiscounts();
+
+  // item count = selected toggles + active steppers
+  let itemCount = Object.values(state.selected).filter(Boolean).length;
+  Object.values(state.steppers).forEach(n => { if (n>0) itemCount++; });
+
+  document.getElementById('countBadge').textContent = itemCount + (itemCount===1?' item':' items');
+  document.getElementById('totalCount').textContent = itemCount;
+
+  const { monthlyTotal:mt, totalDiscount } = computeTotal();
+  const rtEl = document.getElementById('runningTotal');
+  if (rtEl) {
+    if (mt > 0) {
+      const discStr = totalDiscount > 0 ? ` (−$${totalDiscount} disc.)` : '';
+      rtEl.textContent = `$${Math.round(mt)}ᴍᴏ${discStr}`;
+    } else rtEl.textContent = '$0ᴍᴏ';
   }
 
-  function getBundleDiscounts() {
-    // Returns [{label, amount}] — amount is positive number representing savings
-    if (!activeKeys.has('internet')) return [];
-    const out = [];
-    const hasMobile = (state.select + state.plus) > 0;
-    const hasTV      = activeKeys.has('tv') || activeKeys.has('nowtv');
-    const hasVoice   = activeKeys.has('voice');
-    const hasSec     = activeKeys.has('security');
+  const da = document.getElementById('discountArea');
+  if (disc.length) { da.style.display='block'; document.getElementById('discountLines').textContent = disc.map(d=>d.label).join('\n'); }
+  else da.style.display='none';
 
-    // Service bundle (TV/Voice/Security combos off internet)
-    const bundled = [hasTV, hasVoice, hasSec].filter(Boolean).length;
-    if (bundled === 1) out.push({label:'💰 Double play discount (Internet + 1 service)', amount:20});
-    if (bundled === 2) out.push({label:'💰 Triple play discount (Internet + 2 services)', amount:40});
-    if (bundled >= 3) out.push({label:'💰 Quad play discount (Internet + 3 services)', amount:60});
+  if (!allLines.length) {
+    preview.innerHTML = '<span class="empty">Click items to build your plan summary...</span>';
+    return;
+  }
 
-    // Mobile bundle — flat $10 off internet if any mobile lines exist
-    if (hasMobile) {
-      out.push({label:'💰 Mobile bundle discount', amount: 10});
+  preview.innerHTML = allLines.map(item => {
+    const esc = item.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    const ctrl = !item.detail
+      ? `<button class="line-remove" data-text="${encodeURIComponent(item.text)}" title="Remove">×</button>`
+      : `<span class="no-rm"></span>`;
+    return `<div class="line${item.detail?' detail-line':''}">${ctrl}<span class="line-text">${esc}</span></div>`;
+  }).join('');
+
+  // Remove buttons in the summary
+  preview.querySelectorAll('.line-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = decodeURIComponent(btn.getAttribute('data-text'));
+      removeBySummary(text);
+    });
+  });
+}
+
+// Remove a line by its summary text (maps back to whatever produced it)
+function removeBySummary(text) {
+  // toggle items
+  const hit = (function(){
+    for (const key of Object.keys(CONFIG)) {
+      const sec = CONFIG[key];
+      if (!sec.items) continue;
+      const it = sec.items.find(i => summaryFor(i) === text || i.summary === text);
+      if (it) return it;
     }
-    return out;
-  }
+    return null;
+  })();
+  if (hit) { deselectItem(hit.id); return; }
 
-  function getDetailText(key) {
-    if (key === 'tv') {
-      const coreSelected   = state.lines.some(l => l.text === '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Core $55/mo · 10+ ch');
-      const nowSelected    = state.lines.some(l => l.text === '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $20/mo · 125+ ch · 20hr DVR' || l.text === '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $30/mo · 125+ ch · 20hr DVR · Netflix · Apple TV+ · Peacock');
-      const latinoSelected = state.lines.some(l => l.text === '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV Latino $15/mo · Spanish-language + local ch');
-      if (nowSelected || latinoSelected) {
-        return '• No box needed · 20hr DVR · Stream on any device · No contract';
-      }
-      const dvr = coreSelected ? '150hr' : '300hr';
-      return `• X1 box · ${dvr} DVR · Voice remote · 4K · No contract`;
-    }
-    const btn = document.querySelector(`.btn-detail[data-detail-key="${key}"]`);
-    return btn ? btn.getAttribute('data-detail-text') : null;
-  }
+  // NOW upgraded line
+  if (text === NOW_UPGRADED) { deselectItem('nowtv'); return; }
 
-  function getAllOutputLines() {
-    const result = [];
-    // Section order — nowtv lines live in the 'tv' section visually
-    ['internet','essentials','tv','stream','voice'].forEach(sk => {
-      // For tv bucket, include both tv and nowtv keyed lines
-      const sLines = sk === 'tv'
-        ? state.lines.filter(l => l.sectionKey === 'tv')
-        : state.lines.filter(l => l.sectionKey === sk);
-      sLines.forEach(l => result.push({text: l.text, detail: false}));
-      if (state.details[sk]) {
-        const dt = getDetailText(sk);
-        if (dt) result.push({text: dt, detail: true});
+  // Mobile / cameras / devices lines → clear the relevant steppers
+  if (text.startsWith('𝐌𝐨𝐛𝐢𝐥𝐞:')) { CONFIG.mobile.lines.forEach(l => setStepper(l.id, 0)); return; }
+  if (text.startsWith('𝐂𝐚𝐦𝐬:'))  { CONFIG.security.cameras.forEach(c => setStepper(c.id, 0)); return; }
+  if (/Smartwatch|Tablet/.test(text) && text.includes('billed')) { CONFIG.mobile.devices.forEach(d => setStepper(d.id, 0)); return; }
+  if (text.startsWith('𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲:')) { deselectItem('smarthome'); deselectItem('promon'); return; }
+}
+
+/* ---- Selection logic ---- */
+function selectItem(id) {
+  const found = findItem(id);
+  if (!found) return;
+  const { item, sectionKey } = found;
+  const sec = CONFIG[sectionKey];
+
+  // exclusive group: deselect siblings across ALL sections sharing this group
+  if (sec.exclusive) {
+    Object.keys(CONFIG).forEach(k => {
+      const s = CONFIG[k];
+      if (s.exclusive === sec.exclusive && s.items) {
+        s.items.forEach(i => { if (i.id !== id) deselectItem(i.id, true); });
       }
     });
-    state.lines.filter(l => !l.sectionKey).forEach(l => result.push({text: l.text, detail: false}));
-
-    // Security — combine Smart Home + Pro Monitoring, append cameras
-    (function(){
-      const hasSmartHome = state.lines.some(l => l.text === '𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Smart Home $10/mo');
-      const hasPro       = state.lines.some(l => l.text === '𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Pro Monitoring $45/mo');
-      const hasCams      = state.indoor>0 || state.outdoor>0;
-      // Remove individually-pushed security lines — we rebuild them here
-      // (they were already pushed above via sectionKey loop; remove and re-add combined)
-      const secIdx = result.findIndex(l => l.text && l.text.startsWith('𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲:'));
-      // Purge all security lines already in result
-      for (let i = result.length-1; i >= 0; i--) {
-        if (result[i].text && result[i].text.startsWith('𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲:')) result.splice(i,1);
-      }
-      if (hasSmartHome || hasPro) {
-        let secLine = '𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲:';
-        if (hasSmartHome && hasPro) secLine += ' Smart Home + Pro Monitoring $55/mo';
-        else if (hasSmartHome)      secLine += ' Smart Home $10/mo';
-        else                        secLine += ' Pro Monitoring $45/mo';
-        result.push({text: secLine, detail:false});
-      }
-      if (hasCams) {
-        const totalCams = state.indoor + state.outdoor;
-        const totalCost = (state.indoor * 2.50) + (state.outdoor * 5.00);
-        const camParts = [];
-        if (state.indoor>0)  camParts.push(`${state.indoor} Indoor`);
-        if (state.outdoor>0) camParts.push(`${state.outdoor} Outdoor`);
-        result.push({text:`Cameras: ${camParts.join(' · ')}  $${totalCost.toFixed(2)}/mo`, detail:false});
-      }
-      if (state.details['security']) {
-        const dt = getDetailText('security');
-        if (dt) result.push({text: dt, detail: true});
-      }
-    })();
-
-    // Mobile
-    const selTotal  = state.select * 30;
-    const plusTotal = state.plus * 45;
-    const selTxt  = state.select>0 ? `𝗦𝗲𝗹𝗲𝗰𝘁 × ${state.select}: $${selTotal}/mo` : '';
-    const plusTxt = state.plus>0   ? `𝗣𝗹𝘂𝘀 × ${state.plus}: $${plusTotal}/mo` : '';
-    const mobLine = [selTxt, plusTxt].filter(Boolean).join(' · ');
-    if (mobLine) result.push({text:`𝗠𝗼𝗯𝗶𝗹𝗲: ${mobLine}`, detail:false});
-    if (state.watch>0 || state.tablet>0) {
-      const devParts = [];
-      if (state.watch>0) devParts.push(`Smartwatch $10/mo × ${state.watch}`);
-      if (state.tablet>0) devParts.push(`Tablet $20/mo × ${state.tablet}`);
-      const rawCost = state.watch*10 + state.tablet*20;
-      const billedCost = Math.min(rawCost, 35);
-      result.push({text:`${devParts.join(' · ')} · billed $${billedCost}/mo`, detail:false});
-    }
-    if (state.details['mobile']) {
-      const dt = getDetailText('mobile');
-      if (dt) result.push({text: dt, detail: true});
-    }
-
-    getBundleDiscounts().forEach(d => result.push({text:d.label, detail:false}));
-    return result;
   }
+  state.selected[id] = true;
+  syncButtons();
+  postSelectHooks(id, true);
+}
 
-  function updateMobileLabels() {
-    // Prices are always base rate — discount applied to internet, not mobile lines
-  }
+function deselectItem(id, silent) {
+  state.selected[id] = false;
+  // if NOW TV deselected, reset addon
+  if (id === 'nowtv') { state.addonActive = false; const ab=document.getElementById('btn-now-addon'); if(ab) ab.classList.remove('active'); }
+  // if smart home deselected, drop pro monitoring
+  if (id === 'smarthome' && state.selected['promon']) state.selected['promon'] = false;
+  if (!silent) { syncButtons(); postSelectHooks(id, false); }
+}
 
-  function updateAddonBtn() {
-    const addonBtn = document.getElementById('btn-streamsaver-addon');
-    if (!addonBtn) return;
-    const hasNow = !!nowTvLine();
-    addonBtn.classList.toggle('disabled', !hasNow);
-    if (!hasNow && state.addonActive) {
-      state.addonActive = false;
-      addonBtn.classList.remove('active');
+function postSelectHooks(id, on) {
+  // NOW add-on availability
+  updateAddonBtn();
+  // Pro monitoring requires smart home
+  updateRequiresBtns();
+  render();
+}
+
+function toggleItem(id) {
+  if (state.selected[id]) deselectItem(id);
+  else selectItem(id);
+}
+
+/* ---- Reflect state onto buttons ---- */
+function syncButtons() {
+  document.querySelectorAll('button.item[data-id]').forEach(b => {
+    b.classList.toggle('active', !!state.selected[b.getAttribute('data-id')]);
+  });
+}
+
+function updateAddonBtn() {
+  const ab = document.getElementById('btn-now-addon');
+  if (!ab) return;
+  const nowOn = !!state.selected['nowtv'];
+  ab.classList.toggle('disabled', !nowOn);
+  ab.classList.toggle('active', state.addonActive && nowOn);
+  if (!nowOn) state.addonActive = false;
+}
+
+function updateRequiresBtns() {
+  document.querySelectorAll('button.item[data-id]').forEach(b => {
+    const found = findItem(b.getAttribute('data-id'));
+    if (found && found.item.requires) {
+      const ok = !!state.selected[found.item.requires];
+      b.classList.toggle('disabled', !ok);
+      if (!ok && state.selected[found.item.id]) state.selected[found.item.id] = false;
     }
+  });
+}
+
+/* ---- Steppers ---- */
+function setStepper(id, n) { state.steppers[id] = n; syncStepper(id); render(); }
+
+function syncStepper(id) {
+  const n = state.steppers[id] || 0;
+  const cnt = document.getElementById(`count-${id}`);
+  const dec = document.getElementById(`dec-${id}`);
+  const row = document.getElementById(`row-${id}`);
+  if (cnt) cnt.textContent = n;
+  if (dec) dec.disabled = n === 0;
+  if (row) row.classList.toggle('active', n > 0);
+}
+
+function stepperCanInc(id) {
+  // camera combined cap
+  if (CONFIG.security.cameras.some(c => c.id === id)) {
+    const total = CONFIG.security.cameras.reduce((s,c)=>s+(state.steppers[c.id]||0),0);
+    return total < CONFIG.security.cameraMax;
   }
+  // generic per-stepper max
+  return (state.steppers[id]||0) < CONFIG.mobile.maxPerStepper;
+}
 
-  function render() {
-    const preview = document.getElementById('preview');
-    const allLines = getAllOutputLines();
-    const disc = getBundleDiscounts();
-    const itemCount = state.lines.length + (state.select>0?1:0) + (state.plus>0?1:0) + (state.watch>0?1:0) + (state.tablet>0?1:0);
+function wireStepper(id) {
+  const inc = document.getElementById(`inc-${id}`);
+  const dec = document.getElementById(`dec-${id}`);
+  inc.addEventListener('click', e => { e.stopPropagation(); if (stepperCanInc(id)) { state.steppers[id]=(state.steppers[id]||0)+1; syncAllStepperCaps(); render(); } });
+  dec.addEventListener('click', e => { e.stopPropagation(); if ((state.steppers[id]||0)>0) { state.steppers[id]--; syncAllStepperCaps(); render(); } });
+  syncStepper(id);
+}
 
-    document.getElementById('countBadge').textContent = itemCount+(itemCount===1?' item':' items');
-    document.getElementById('totalCount').textContent = itemCount;
+// Re-evaluate the + button disabled state for capped steppers
+function syncAllStepperCaps() {
+  const allIds = [
+    ...CONFIG.mobile.lines.map(l=>l.id),
+    ...CONFIG.mobile.devices.map(d=>d.id),
+    ...CONFIG.security.cameras.map(c=>c.id),
+  ];
+  allIds.forEach(id => {
+    syncStepper(id);
+    const inc = document.getElementById(`inc-${id}`);
+    if (inc) inc.disabled = !stepperCanInc(id);
+  });
+}
 
-    // Running total — explicit pricing per service, no regex guessing
-    const internetPrices = {
-      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: NOW Prepaid $30/mo · 100 Mbps': 30,
-      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 300 Mbps $45/mo': 45,
-      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 500 Mbps $55/mo': 55,
-      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Gigabit $60/mo': 50,
-      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: 2 Gbps $100/mo': 100,
-      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Essentials $14.95/mo · 75 Mbps': 14.95,
-      '𝐈𝐧𝐭𝐞𝐫𝐧𝐞𝐭: Essentials+ $29.95/mo · 300 Mbps': 29.95,
-    };
-    const tvPrices = {
-      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Core $65/mo · 10+ ch': 55,
-      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $20/mo · 125+ ch · 20hr DVR': 20,
-      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV $30/mo · 125+ ch · 20hr DVR · Netflix · Apple TV+ · Peacock': 30,
-      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: NOW TV Latino $15/mo · Spanish-language + local ch': 15,
-      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Sports & News $90/mo · 50+ ch': 90,
-      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Kids & Entertainment $105/mo · 125+ ch': 105,
-      '𝐓𝐞𝐥𝐞𝐯𝐢𝐬𝐢𝐨𝐧: Premium $135/mo · 185+ ch': 135,
-    };
-    const streamPrices = {
-      '𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 $18/mo · Netflix · Apple TV+ · Peacock': 18,
-      '𝐒𝐭𝐫𝐞𝐚𝐦𝐒𝐚𝐯𝐞𝐫 Premium $35/mo · Netflix · Apple TV+ · Peacock · Disney+/Hulu · Max': 35,
-    };
-    const miscPrices = {
-      '𝐇𝐨𝐦𝐞 𝐏𝐡𝐨𝐧𝐞: Voice Premier $30–$40/mo': 35, // mid-point estimate
-    };
-    const allPriceMaps = [internetPrices, tvPrices, streamPrices, miscPrices];
-    let gross = 0;
-    state.lines.forEach(l => {
-      for (const map of allPriceMaps) {
-        if (map[l.text] !== undefined) { gross += map[l.text]; break; }
-      }
-    });
-    // Security: Smart Home + Pro Monitoring combined = $55, or individual
-    const hasSmartHome = state.lines.some(l => l.text === '𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Smart Home $10/mo');
-    const hasPro       = state.lines.some(l => l.text === '𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Pro Monitoring $45/mo');
-    if (hasSmartHome && hasPro) gross += 55;
-    else if (hasSmartHome)      gross += 10;
-    else if (hasPro)            gross += 45;
-    // Mobile
-    gross += (state.select * 30) + (state.plus * 45);
-    gross += Math.min(state.watch * 10 + state.tablet * 20, 35);
-    gross += (state.indoor * 2.50) + (state.outdoor * 5);
-    // Discounts
-    const totalDiscount = disc.reduce((sum, d) => sum + d.amount, 0);
-    monthlyTotal = Math.max(0, gross - totalDiscount);
-    const rtEl = document.getElementById('runningTotal');
-    if (rtEl) {
-      if (monthlyTotal > 0) {
-        const discStr = totalDiscount > 0 ? ` (−$${totalDiscount} disc.)` : '';
-        rtEl.textContent = `$${Math.round(monthlyTotal)}/mo${discStr}`;
-      } else {
-        rtEl.textContent = '$0/mo';
-      }
-    }
-
-    const da = document.getElementById('discountArea');
-    if (disc.length){ da.style.display='block'; document.getElementById('discountLines').textContent=disc.map(d=>d.label).join('\n'); }
-    else da.style.display='none';
-
-    if (!allLines.length){
-      preview.innerHTML='<span class="empty">Click items to build your plan summary...</span>';
-      return;
-    }
-
-    preview.innerHTML = allLines.map(item=>{
-      const esc = item.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-      const ctrl = !item.detail
-        ? `<button class="line-remove" data-text="${encodeURIComponent(item.text)}" title="Remove">×</button>`
-        : `<span class="no-rm"></span>`;
-      return `<div class="line${item.detail?' detail-line':''}">${ctrl}<span class="line-text">${esc}</span></div>`;
-    }).join('');
-
-    preview.querySelectorAll('.line-remove').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        const text = decodeURIComponent(btn.getAttribute('data-text'));
-        const idx = state.lines.findIndex(l=>l.text===text);
-        if (idx===-1) return;
-        const {key} = state.lines[idx];
-        state.lines.splice(idx,1);
-        document.querySelectorAll('button.item[data-text]').forEach(b=>{
-          if (b.getAttribute('data-text')===text || b.getAttribute('data-text')===NOW_BASE)
-            b.classList.remove('active');
-        });
-        if (key && !state.lines.some(l=>l.key===key)) activeKeys.delete(key);
-        // If NOW TV removed via ×, reset addon
-        if (text === NOW_BASE || text === NOW_UPGRADED) {
-          state.addonActive = false;
-          const ab = document.getElementById('btn-streamsaver-addon');
-          if (ab) { ab.classList.remove('active'); ab.classList.add('disabled'); }
-        }
-        updateMobileLabels(); render();
-      });
-    });
-  }
-
-  // Generic item toggle
-  document.querySelectorAll('button.item[data-text]:not(#btn-streamsaver-addon)').forEach(btn=>{
-    const sectionHead = btn.closest('.section')?.querySelector('.btn-detail');
-    // nowtv button lives in tv section but needs its own sectionKey bucket mapped to tv
-    const rawKey = btn.getAttribute('data-key') || null;
-    const sectionKey = sectionHead ? sectionHead.getAttribute('data-detail-key') : null;
-
-    btn.addEventListener('click',()=>{
-      const text = btn.getAttribute('data-text');
-      const key  = rawKey;
-      const idx  = state.lines.findIndex(l => l.text === text);
-
-      if (idx > -1) {
-        // Deselect
-        state.lines.splice(idx, 1);
-        btn.classList.remove('active');
-        if (key && !state.lines.some(l=>l.key===key)) activeKeys.delete(key);
-        // If deselecting NOW TV, revert any upgrade and reset addon
-        if (key === 'nowtv') {
-          state.addonActive = false;
-          const ab = document.getElementById('btn-streamsaver-addon');
-          if (ab) ab.classList.remove('active');
-        }
-      } else {
-        // Clear mutually exclusive keys
-        if (key === 'internet' || key === 'stream') {
-          [key].forEach(ck => {
-            document.querySelectorAll(`button.item[data-key="${ck}"].active`).forEach(s=>{
-              const si = state.lines.findIndex(l=>l.text===s.getAttribute('data-text'));
-              if (si>-1) state.lines.splice(si,1);
-              s.classList.remove('active');
-            });
-            activeKeys.delete(ck);
-          });
-        }
-        // tv and nowtv are mutually exclusive with each other
-        if (key === 'tv' || key === 'nowtv') {
-          ['tv','nowtv'].forEach(ck => {
-            document.querySelectorAll(`button.item[data-key="${ck}"].active`).forEach(s=>{
-              const si = state.lines.findIndex(l=>l.text===s.getAttribute('data-text') || l.text===NOW_UPGRADED);
-              if (si>-1) state.lines.splice(si,1);
-              s.classList.remove('active');
-            });
-            activeKeys.delete(ck);
-          });
-          // If a cable plan is selected, reset addon
-          if (key === 'tv') {
-            state.addonActive = false;
-            const ab = document.getElementById('btn-streamsaver-addon');
-            if (ab) ab.classList.remove('active');
-          }
-        }
-        state.lines.push({text, key, sectionKey});
-        btn.classList.add('active');
-        if (key) activeKeys.add(key);
-
-        // If addon was already active and NOW TV just selected, apply upgrade immediately
-        if (key === 'nowtv' && state.addonActive) {
-          const ni = state.lines.findIndex(l=>l.text===NOW_BASE);
-          if (ni>-1) state.lines[ni].text = NOW_UPGRADED;
-        }
-      }
-
-      updateAddonBtn();
-      updateMobileLabels();
-      render();
-    });
+/* ---- Wire up everything after build ---- */
+function wire() {
+  // item buttons
+  document.querySelectorAll('button.item[data-id]').forEach(b => {
+    b.addEventListener('click', () => toggleItem(b.getAttribute('data-id')));
   });
 
   // NOW add-on button
-  (function(){
-    const addonBtn = document.getElementById('btn-streamsaver-addon');
-    if (!addonBtn) return;
-    addonBtn.classList.add('disabled'); // greyed initially
+  const addon = document.getElementById('btn-now-addon');
+  if (addon) addon.addEventListener('click', () => {
+    if (!state.selected['nowtv']) return;
+    state.addonActive = !state.addonActive;
+    updateAddonBtn();
+    render();
+  });
 
-    addonBtn.addEventListener('click', () => {
-      if (!nowTvLine()) return;
-      state.addonActive = !state.addonActive;
-      addonBtn.classList.toggle('active', state.addonActive);
-      const line = nowTvLine();
-      if (line) line.text = state.addonActive ? NOW_UPGRADED : NOW_BASE;
-      render();
-    });
-  })();
-
-  // Detail toggles
-  document.querySelectorAll('.btn-detail').forEach(btn=>{
-    btn.addEventListener('click',()=>{
+  // detail toggles
+  document.querySelectorAll('.btn-detail').forEach(btn => {
+    btn.addEventListener('click', () => {
       const k = btn.getAttribute('data-detail-key');
       state.details[k] = !state.details[k];
       btn.classList.toggle('active', !!state.details[k]);
@@ -613,144 +787,53 @@
     });
   });
 
-  // Steppers
-  function setupStepper(id, stateKey){
-    const dec=document.getElementById(`dec-${id}`);
-    const inc=document.getElementById(`inc-${id}`);
-    const cnt=document.getElementById(`count-${id}`);
-    const row=document.getElementById(`row-${id}`);
-    function upd(){
-      const v=state[stateKey];
-      cnt.textContent=v; dec.disabled=v===0; inc.disabled=v===10;
-      v>0?row.classList.add('active'):row.classList.remove('active');
-    }
-    dec.addEventListener('click',e=>{e.stopPropagation();if(state[stateKey]>0){state[stateKey]--;upd();render();}});
-    inc.addEventListener('click',e=>{e.stopPropagation();if(state[stateKey]<10){state[stateKey]++;upd();render();}});
-    upd();
-  }
-  setupStepper('select','select');
-  setupStepper('plus','plus');
+  // steppers
+  [...CONFIG.mobile.lines, ...CONFIG.mobile.devices, ...CONFIG.security.cameras].forEach(s => wireStepper(s.id));
 
-  // Watch + tablet combined cap at $35/mo
-  // Watch $10 + Tablet $20 — max combo is 1 watch + 1 tablet = $30, or 3 watches = $30, etc.
-  // Enforce: watch*10 + tablet*20 <= 35 before allowing increment
-  function setupCappedStepper(id, stateKey) {
-    const dec=document.getElementById(`dec-${id}`);
-    const inc=document.getElementById(`inc-${id}`);
-    const cnt=document.getElementById(`count-${id}`);
-    const row=document.getElementById(`row-${id}`);
-    function upd(){
-      const v=state[stateKey];
-      cnt.textContent=v;
-      dec.disabled = v===0;
-      inc.disabled = v===10;
-      v>0?row.classList.add('active'):row.classList.remove('active');
-    }
-    dec.addEventListener('click',e=>{e.stopPropagation();if(state[stateKey]>0){state[stateKey]--;upd();render();}});
-    inc.addEventListener('click',e=>{e.stopPropagation();if(state[stateKey]<10){state[stateKey]++;upd();render();}});
-    upd();
-  }
-  setupCappedStepper('watch',  'watch');
-  setupCappedStepper('tablet', 'tablet');
-  function updateCappedSteppers(){}
-
-  // Camera steppers
-  function setupCamStepper(id, stateKey){
-    const dec=document.getElementById(`dec-${id}`);
-    const inc=document.getElementById(`inc-${id}`);
-    const cnt=document.getElementById(`count-${id}`);
-    const row=document.getElementById(`row-${id}`);
-    function totalCams(){ return state.indoor + state.outdoor; }
-    function upd(){
-      const v=state[stateKey];
-      cnt.textContent=v; dec.disabled=v===0; inc.disabled=totalCams()>=6;
-      v>0?row.classList.add('active'):row.classList.remove('active');
-    }
-    dec.addEventListener('click',e=>{e.stopPropagation();if(state[stateKey]>0){state[stateKey]--;upd();updateCamSteppers();render();}});
-    inc.addEventListener('click',e=>{e.stopPropagation();if(totalCams()<6){state[stateKey]++;upd();updateCamSteppers();render();}});
-    upd();
-    return upd;
-  }
-  const updIndoor  = setupCamStepper('indoor',  'indoor');
-  const updOutdoor = setupCamStepper('outdoor', 'outdoor');
-  function updateCamSteppers(){ updIndoor(); updOutdoor(); }
-
-  // Pro Monitoring requires Smart Home
-  (function(){
-    const proBtn   = document.getElementById('btn-promonitoring');
-    const homeBtn  = document.getElementById('btn-smarthome');
-    if (!proBtn || !homeBtn) return;
-
-    proBtn.classList.add('disabled');
-
-    function smartHomeActive() {
-      return state.lines.some(l => l.text === '𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲: Smart Home $10/mo');
-    }
-
-    function updateProBtn() {
-      const has = smartHomeActive();
-      proBtn.classList.toggle('disabled', !has);
-      if (!has && proBtn.classList.contains('active')) {
-        // Deselect Pro Monitoring
-        proBtn.click();
-      }
-    }
-
-    homeBtn.addEventListener('click', () => setTimeout(updateProBtn, 0));
-  })();
-
-  // Copy
-  const copyIcon=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
-  document.getElementById('copyBtn').addEventListener('click',()=>{
-    const all=getAllOutputLines();
+  // copy full summary
+  const copyIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    const all = getAllOutputLines();
     if (!all.length) return;
-    const text=all.map(l=>l.text).join('\n');
-    const btn=document.getElementById('copyBtn');
-    const done=()=>{
-      btn.classList.add('success'); btn.textContent='✓ Copied!';
-      setTimeout(()=>{ btn.classList.remove('success'); btn.innerHTML=copyIcon+' Copy to clipboard'; },2000);
-    };
-    navigator.clipboard.writeText(text).then(done).catch(()=>{
-      const ta=Object.assign(document.createElement('textarea'),{value:text});
-      ta.style.cssText='position:absolute;left:-9999px';
-      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
-    });
+    const text = all.map(l=>l.text).join('\n');
+    const btn = document.getElementById('copyBtn');
+    const done = () => { btn.classList.add('success'); btn.textContent='✓ Copied!'; setTimeout(()=>{ btn.classList.remove('success'); btn.innerHTML=copyIcon+' Copy to clipboard'; },2000); };
+    copyText(text, done);
   });
 
-  // Copy total line
+  // copy total (number only)
   document.getElementById('copyTotalBtn').addEventListener('click', () => {
-    const rtEl = document.getElementById('runningTotal');
-    const total = rtEl ? rtEl.textContent : '$0/mo';
-    const text = `${Math.round(monthlyTotal)}`; // uses hoisted monthlyTotal
     const btn = document.getElementById('copyTotalBtn');
-    const done = () => {
-      btn.classList.add('success');
-      setTimeout(() => btn.classList.remove('success'), 1500);
-    };
-    navigator.clipboard.writeText(text).then(done).catch(() => {
-      const ta = Object.assign(document.createElement('textarea'), {value: text});
-      ta.style.cssText = 'position:absolute;left:-9999px';
-      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
-    });
+    const done = () => { btn.classList.add('success'); setTimeout(()=>btn.classList.remove('success'),1500); };
+    copyText(`${Math.round(monthlyTotal)}`, done);
   });
 
-  // Clear
-  document.getElementById('clearBtn').addEventListener('click',()=>{
-    state.lines=[]; state.select=0; state.plus=0; state.watch=0; state.tablet=0; state.indoor=0; state.outdoor=0; state.details={}; state.addonActive=false;
-    activeKeys.clear();
-    document.querySelectorAll('button.item.active').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.btn-detail.active').forEach(b=>{ b.classList.remove('active'); b.textContent='+ details'; });
-    const ab=document.getElementById('btn-streamsaver-addon');
-    if(ab){ ab.classList.remove('active'); ab.classList.add('disabled'); }
-    ['select','plus','watch','tablet','indoor','outdoor'].forEach(id=>{
-      document.getElementById(`count-${id}`).textContent='0';
-      document.getElementById(`dec-${id}`).disabled=true;
-      document.getElementById(`row-${id}`).classList.remove('active');
-    });
-    updateMobileLabels(); render();
+  // clear
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    state.selected = {}; state.steppers = {}; state.details = {}; state.addonActive = false;
+    syncButtons();
+    document.querySelectorAll('.btn-detail.active').forEach(b => { b.classList.remove('active'); b.textContent='+ details'; });
+    [...CONFIG.mobile.lines, ...CONFIG.mobile.devices, ...CONFIG.security.cameras].forEach(s => syncStepper(s.id));
+    syncAllStepperCaps();
+    updateAddonBtn(); updateRequiresBtns();
+    render();
   });
+}
 
-  render();
+function copyText(text, done) {
+  navigator.clipboard.writeText(text).then(done).catch(() => {
+    const ta = Object.assign(document.createElement('textarea'), {value:text});
+    ta.style.cssText = 'position:absolute;left:-9999px';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+
+/* ---- Init ---- */
+build();
+wire();
+updateAddonBtn();
+updateRequiresBtns();
+render();
 </script>
 </body>
 </html>
